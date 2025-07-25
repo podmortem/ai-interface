@@ -29,7 +29,7 @@ public class AnalysisService {
             successThreshold = 3,
             delay = 5000)
     @Retry(maxRetries = 3, delay = 1000)
-    @Timeout(value = 30, unit = ChronoUnit.SECONDS)
+    @Timeout(value = 180, unit = ChronoUnit.SECONDS)
     public Uni<AIResponse> analyzeFailure(
             AnalysisResult analysisResult, AIProviderConfig providerConfig) {
         LOG.infof(
