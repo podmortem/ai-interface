@@ -17,7 +17,7 @@
         <surefire-plugin.version>3.5.3</surefire-plugin.version>
 
         <podmortem.common.lib.version>1.0-1bbf084-SNAPSHOT</podmortem.common.lib.version>
-        <podmortem.ai.provider.lib.version>1.0-9680f45-SNAPSHOT</podmortem.ai.provider.lib.version>
+        <podmortem.ai.provider.lib.version>1.0-3d9be85-SNAPSHOT</podmortem.ai.provider.lib.version>
     </properties>
 
     <repositories>
