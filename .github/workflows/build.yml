@@ -95,7 +95,7 @@ jobs:
         include:
           - arch: amd64
             platform: linux/amd64
-            runner: amd64
+            runner: [self-hosted, amd64]
           - arch: arm64
             platform: linux/arm64
             runner: ubuntu-22.04-arm
@@ -156,4 +156,3 @@ jobs:
           docker buildx imagetools create -t ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-amd64 \
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-arm64
-
