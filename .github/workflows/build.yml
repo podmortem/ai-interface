@@ -16,7 +16,7 @@ env:
 jobs:
   warm-cache:
     name: Warm Dependencies Cache
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
       packages: write
@@ -58,7 +58,7 @@ jobs:
     name: Test Build
     if: github.event_name == 'pull_request'
     needs: warm-cache
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -90,12 +90,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     strategy:
       matrix:
         include:
           - arch: amd64
             platform: linux/amd64
-            runner: self-hosted
+            runner: [self-hosted, linux]
           - arch: arm64
             platform: linux/arm64
             runner: ubuntu-22.04-arm
@@ -114,6 +116,7 @@ jobs:
           password: ${{ secrets.GH_PAT }}
 
       - name: Build and push ${{ matrix.arch }} image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -123,7 +126,7 @@ jobs:
           cache-from: |
             type=gha,scope=deps
             type=gha,scope=build-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=build-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=build-amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ matrix.arch }}
           build-args: |
@@ -131,14 +134,23 @@ jobs:
           secrets: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate SLSA attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
   create-manifest:
     name: Create Multi-Arch Manifest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build-arch
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     steps:
       - name: Log in to the GitHub Container Registry
         uses: docker/login-action@v3
@@ -148,6 +160,7 @@ jobs:
           password: ${{ secrets.GH_PAT }}
 
       - name: Create and push multi-arch manifest
+        id: manifest
         run: |
           docker buildx imagetools create -t ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest \
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-amd64 \
@@ -156,3 +169,14 @@ jobs:
           docker buildx imagetools create -t ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-amd64 \
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-arm64
+
+          # Get the digest of the multi-arch manifest
+          DIGEST=$(docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest --format '{{.Manifest.Digest}}')
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+      - name: Generate SLSA attestation for multi-arch manifest
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
+          push-to-registry: true
