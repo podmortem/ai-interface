@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: podmortem/podmortem-ai-interface
+  IMAGE_NAME: podmortem-ai-interface
 
 jobs:
   cleanup:
@@ -18,8 +18,10 @@ jobs:
       - name: Delete old development images
         uses: actions/delete-package-versions@v5
         with:
+          owner: podmortem
           package-name: ${{ env.IMAGE_NAME }}
           package-type: 'container'
           min-versions-to-keep: 20
+          # Ignore release tags (v1.2.3 pattern), latest, and deps-cache
           ignore-versions: '^(v\d+\.\d+\.\d+.*|latest|deps-cache)$'
           token: ${{ secrets.GITHUB_TOKEN }}
