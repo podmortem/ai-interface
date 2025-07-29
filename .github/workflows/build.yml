@@ -170,9 +170,14 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-amd64 \
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-arm64
 
-          # Get the digest of the multi-arch manifest
-          DIGEST=$(docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest --format '{{.Manifest.Digest}}')
+          # Get the digest of the multi-arch manifest using docker inspect
+          DIGEST=$(docker manifest inspect ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest | jq -r '.digest // empty')
+          if [ -z "$DIGEST" ]; then
+            # Fallback: get digest from the registry API
+            DIGEST=$(docker inspect ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest --format='{{index .RepoDigests 0}}' | cut -d'@' -f2)
+          fi
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "Manifest digest: $DIGEST"
 
       - name: Generate SLSA attestation for multi-arch manifest
         uses: actions/attest-build-provenance@v1
