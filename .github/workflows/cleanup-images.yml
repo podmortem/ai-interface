@@ -22,7 +22,6 @@ jobs:
           cut-off: 200d 
           account: podmortem
           token: ${{ secrets.GITHUB_TOKEN }}
-          keep-at-least: 20
-          skip-tags: "v*.*.*,latest,deps-cache"
-          filter-tags: "*"
+          keep-n-most-recent: 20
+          tag-selection: untagged
           dry-run: false
