@@ -1,0 +1,30 @@
+name: Cleanup Old Development Images
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: podmortem-ai-interface
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Delete old development images
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: ${{ env.IMAGE_NAME }}
+          package-type: 'container'
+          min-versions-to-keep: 5
+          # Keep release tags (v1.2.3), latest, and deps-cache
+          # Delete SHA-based tags and arch-specific tags older than 10 days
+          ignore-versions: '^(latest|v\d+\.\d+\.\d+.*|deps-cache)$'
+          delete-only-pre-release-versions: false
+          delete-only-untagged-versions: false
+          older-than: 10
+          token: ${{ secrets.GITHUB_TOKEN }}
