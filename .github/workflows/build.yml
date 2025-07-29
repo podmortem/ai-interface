@@ -16,7 +16,7 @@ env:
 jobs:
   warm-cache:
     name: Warm Dependencies Cache
-    runs-on: [self-hosted, amd64]
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
@@ -58,7 +58,7 @@ jobs:
     name: Test Build
     if: github.event_name == 'pull_request'
     needs: warm-cache
-    runs-on: [self-hosted, amd64]
+    runs-on: self-hosted
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -95,7 +95,7 @@ jobs:
         include:
           - arch: amd64
             platform: linux/amd64
-            runner: [self-hosted, amd64]
+            runner: self-hosted
           - arch: arm64
             platform: linux/arm64
             runner: ubuntu-22.04-arm
@@ -135,7 +135,7 @@ jobs:
     name: Create Multi-Arch Manifest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build-arch
-    runs-on: [self-hosted, amd64]
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
