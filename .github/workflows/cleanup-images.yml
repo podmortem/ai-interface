@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: podmortem-ai-interface
+  IMAGE_NAME: podmortem/podmortem-ai-interface
 
 jobs:
   cleanup:
@@ -16,10 +16,13 @@ jobs:
       packages: write
     steps:
       - name: Delete old development images
-        uses: windyakin/delete-package-versions-keep-latest@v1
+        uses: snok/container-retention-policy@v3.0.0
         with:
-          owner: ${{ github.repository_owner }}
-          repo: ${{ github.event.repository.name }}
-          package-name: ${{ env.IMAGE_NAME }}
-          keep-latest-package-versions: 20
+          image-names: ${{ env.IMAGE_NAME }}
+          cut-off: 200d 
+          account: podmortem
           token: ${{ secrets.GITHUB_TOKEN }}
+          keep-at-least: 20
+          skip-tags: "v*.*.*,latest,deps-cache"
+          filter-tags: "*"
+          dry-run: false
