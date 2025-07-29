@@ -16,6 +16,13 @@ import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.jboss.logging.Logger;
 
+/**
+ * Service for orchestrating AI pod failure analysis.
+ *
+ * <p>Provides fault-tolerant operations for generating failure explanations using various AI
+ * providers. Includes circuit breaker, retry logic, and fallback mechanisms to ensure system
+ * resilience when AI services are unavailable.
+ */
 @ApplicationScoped
 public class AnalysisService {
 
@@ -23,6 +30,17 @@ public class AnalysisService {
 
     @Inject ProviderRegistry providerRegistry;
 
+    /**
+     * Analyzes a pod failure using the specified AI provider with fault tolerance.
+     *
+     * <p>Uses circuit breaker pattern to prevent cascading failures, with retry logic and timeout
+     * protection. If the AI provider fails, the circuit breaker will open to prevent further
+     * requests until the service recovers.
+     *
+     * @param analysisResult the log analysis results from the log parser
+     * @param providerConfig the AI provider configuration and parameters
+     * @return a Uni that emits the AI-generated failure explanation
+     */
     @CircuitBreaker(
             requestVolumeThreshold = 10,
             failureRatio = 0.5,
@@ -56,12 +74,32 @@ public class AnalysisService {
         }
     }
 
+    /**
+     * Protected version of analyzeFailure with fallback mechanism.
+     *
+     * <p>When AI analysis fails or times out, automatically falls back to generating a basic
+     * pattern-based explanation using the analysis results.
+     *
+     * @param analysisResult the log analysis results
+     * @param providerConfig the AI provider configuration
+     * @return a Uni that emits either AI-generated or fallback explanation
+     */
     @Fallback(fallbackMethod = "generateFallbackExplanation")
     public Uni<AIResponse> protectedAnalyzeFailure(
             AnalysisResult analysisResult, AIProviderConfig providerConfig) {
         return analyzeFailure(analysisResult, providerConfig);
     }
 
+    /**
+     * Generates a fallback explanation when AI providers are unavailable.
+     *
+     * <p>Creates a basic explanation based on pattern analysis results without requiring external
+     * AI services. Used when circuit breaker is open or AI services fail.
+     *
+     * @param analysisResult the log analysis results to explain
+     * @param providerConfig the original provider configuration (for context)
+     * @return a Uni that emits a pattern-based explanation
+     */
     public Uni<AIResponse> generateFallbackExplanation(
             AnalysisResult analysisResult, AIProviderConfig providerConfig) {
         LOG.warnf("Using fallback explanation for analysis ID: %s", analysisResult.getAnalysisId());
@@ -80,6 +118,11 @@ public class AnalysisService {
         return Uni.createFrom().item(fallbackResponse);
     }
 
+    /**
+     * Retrieves the list of all available AI provider IDs.
+     *
+     * @return a Uni that emits the list of provider identifiers
+     */
     public Uni<List<String>> getAvailableProviders() {
         return Uni.createFrom()
                 .item(
@@ -88,6 +131,15 @@ public class AnalysisService {
                                 .collect(Collectors.toList()));
     }
 
+    /**
+     * Validates an AI provider configuration.
+     *
+     * <p>Tests connectivity, authentication, and basic functionality of the specified AI provider
+     * to ensure it can be used for analysis requests.
+     *
+     * @param config the AI provider configuration to validate
+     * @return a Uni that emits the validation results
+     */
     public Uni<ValidationResult> validateProvider(AIProviderConfig config) {
         try {
             AIProvider provider = providerRegistry.getProvider(config.getProviderId());
@@ -101,6 +153,13 @@ public class AnalysisService {
         }
     }
 
+    /**
+     * Enriches AI response with additional metadata and correlation information.
+     *
+     * @param response the AI response to enrich
+     * @param analysisResult the original analysis results for correlation
+     * @return the enriched AI response with additional metadata
+     */
     private AIResponse enrichResponse(AIResponse response, AnalysisResult analysisResult) {
         // add any additional metadata or processing
         response.setGeneratedAt(Instant.now());
@@ -128,16 +187,25 @@ public class AnalysisService {
         return response;
     }
 
+    /**
+     * Builds a basic pattern-based explanation from analysis results.
+     *
+     * <p>Creates a human-readable explanation based on matched patterns and events without
+     * requiring external AI services. Used for fallback scenarios.
+     *
+     * @param analysisResult the log analysis results to explain
+     * @return a basic explanation string
+     */
     private String buildBasicExplanation(AnalysisResult analysisResult) {
         StringBuilder explanation = new StringBuilder();
 
         explanation.append("Pod failure analysis (pattern-based fallback): ");
 
         if (analysisResult.getEvents() != null && !analysisResult.getEvents().isEmpty()) {
-            // Get the first critical event
+            // get the first critical event
             var firstEvent = analysisResult.getEvents().get(0);
 
-            // Access pattern ID and severity through the matched pattern
+            // access pattern ID and severity through the matched pattern
             if (firstEvent.getMatchedPattern() != null) {
                 String patternId = firstEvent.getMatchedPattern().getId();
                 String severity = firstEvent.getMatchedPattern().getSeverity();

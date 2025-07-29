@@ -14,6 +14,12 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * REST API controller for pod failure analysis using AI providers.
+ *
+ * <p>Provides endpoints for analyzing pod failures, validating AI provider configurations, and
+ * managing prompt templates. All operations are asynchronous using Mutiny Uni.
+ */
 @Path("/api/v1/analysis")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -25,6 +31,15 @@ public class Analysis {
 
     @Inject PromptTemplateService promptTemplateService;
 
+    /**
+     * Analyzes a pod failure using the specified AI provider.
+     *
+     * <p>Takes an analysis request containing log analysis results and AI provider configuration,
+     * then generates a human-readable explanation of the failure using the configured AI service.
+     *
+     * @param request the analysis request containing failure data and provider config
+     * @return a Uni that emits an HTTP response with the AI-generated explanation
+     */
     @POST
     @Path("/analyze")
     public Uni<Response> analyze(AnalysisRequest request) {
@@ -55,6 +70,15 @@ public class Analysis {
                         });
     }
 
+    /**
+     * Validates an AI provider configuration.
+     *
+     * <p>Tests connectivity and authentication with the specified AI provider to ensure the
+     * configuration is valid and the service is accessible.
+     *
+     * @param config the AI provider configuration to validate
+     * @return a Uni that emits an HTTP response with validation results
+     */
     @POST
     @Path("/validate")
     public Uni<Response> validateProvider(AIProviderConfig config) {
@@ -74,6 +98,14 @@ public class Analysis {
                         });
     }
 
+    /**
+     * Retrieves the list of available AI providers.
+     *
+     * <p>Returns all AI providers that are currently registered and available for use in pod
+     * failure analysis.
+     *
+     * @return a Uni that emits an HTTP response with the list of provider IDs
+     */
     @GET
     @Path("/providers")
     public Uni<Response> getAvailableProviders() {
@@ -82,6 +114,14 @@ public class Analysis {
                 .map(providers -> Response.ok(providers).build());
     }
 
+    /**
+     * Triggers a reload of prompt templates from external sources.
+     *
+     * <p>Returns information about prompt reloading process. Since prompts are loaded from
+     * Kubernetes ConfigMaps, actual reloading requires ConfigMap recreation.
+     *
+     * @return an HTTP response with reload status information
+     */
     @POST
     @Path("/prompts/reload")
     public Response reloadPrompts() {
@@ -94,6 +134,14 @@ public class Analysis {
                 .build();
     }
 
+    /**
+     * Retrieves the current status of prompt templates.
+     *
+     * <p>Returns information about prompt template status and configuration. Detailed status
+     * information is available in service logs.
+     *
+     * @return an HTTP response with prompt status information
+     */
     @GET
     @Path("/prompts/status")
     public Response getPromptStatus() {
