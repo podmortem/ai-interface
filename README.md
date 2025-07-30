@@ -1,6 +1,7 @@
 # ai-interface
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=podmortem_ai-interface&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=podmortem_ai-interface)
 
-A Quarkus-based REST API service providing AI pod failure analysis for the Podmortem operator.
+> A Quarkus-based REST API service providing AI pod failure analysis for the Podmortem operator.
 
 ## Overview
 
